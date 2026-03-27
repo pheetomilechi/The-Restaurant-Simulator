@@ -97,3 +97,56 @@ function logWithColor(message, type, requireId) {
        });
 
        // Endpoint 4: Non-blocking I/O Simulation
+       app.get('/nonblocking-io', async (req, res) => {
+        logWithColor('Starting non-blocking operation', 'io', req.id);
+
+        //Simulate async I/O that doesn't block
+        await new Promise(resolve => {
+            setTimeout(() => {
+                logWithColor('Async I/O operation completed', 'io', req.id);
+                resolve();
+            }, 2000);
+        });
+        logWithColor('Response ready to send', 'async', req.id);
+        res.send('Non-blocking operation completed')
+       });
+
+       // Endpoint 5: mixed Operations - Real-world  scenario
+       app.get('/complex', (req, res) => {
+        let completed = 0;
+        const checkComplete = () => {
+            completed++;
+            if (completed === 3) {
+                logWithColor('ALL OPERATIONS COMPLETE - Sending response',
+            'async', req.id);
+            res.send('Complex operation completed');
+            }
+        };
+        logWithColor('Starting complex operation with multiple async tasks',
+        'event-loop', req.id);
+
+        // Operation 1: CPU-intensive but non-blocking via setImmediate
+        setImmediate(() => {
+            logWithColor('Starting CPU task in setImmediate', 'macrotask', req.id);
+            let sum = 0;
+            for (let i = 0; i < 10000000; i++) {
+                sum += i;
+            }
+            logWithColor('CPU task completed: sum = ${sum}',
+            'macrotask', req.id);
+            checkComplete();
+        });
+
+        // Operation 2: Async database query simulation
+        setTimeout(() => {
+            logWithColor('Database querry completed', 'io', req.id);
+            checkComplete();
+        }, 1000);
+        // Operation 3: File operation simulation
+        Promise.resolve().then(() => {
+            logWithColor('File read operation completed (microtask)',
+        'microtask', req.id);
+        checkComplete();
+        });
+        logWithColor('All operations initiated', 'event-loop', req.id);
+       });
