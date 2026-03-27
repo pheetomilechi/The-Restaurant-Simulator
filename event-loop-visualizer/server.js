@@ -55,7 +55,7 @@ function logWithColor(message, type, requireId) {
                 res.send(`Timeout of ${delay}ms completed`);
             }, delay);
         logWithColor(`Timeout scheduled, continuing execution`, 'event-loop', req.id);
-        )};
+        });
 
         // Endpoint 3: Promise Microtasks vs setTimout Macrotasks
         app.get('/order-of-execution', (req, res) => {
@@ -149,4 +149,61 @@ function logWithColor(message, type, requireId) {
         checkComplete();
         });
         logWithColor('All operations initiated', 'event-loop', req.id);
+       });
+
+       //Endpoint 6: Visual Demo - Race Conditions
+       app.get('/race-demo', (req, res) => {
+        let counter = 0;
+
+        logWithColor('=== RACE CONDITION DEMO ===', 'event-loop', req.id);
+        // This demonstates how operations interleave
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                counter++;
+                logWithColor(`Timeout ${i + 1} incremented counter to ${counter}`,
+                'macrotask', req.id);
+                 }, Math.random() * 100);
+            }
+                for (let i = 0; i < 5; i++) {
+                    Promise.resolve().then(() => {
+                        counter++;
+                    logWithColor(`Promise ${i + 1} incremented counter to 
+                        ${counter}`, 'microtask', req.id);
+                    });
+                }  
+                setTimeout(() => {
+                    res.json({
+                        message: 'Race condition demo completed',
+                        finalCounter: counter,
+                        note: 'Notice how microtasks execute before macrotasks, even if microtasks were scheduled first'
+                    });
+                }, 200);
+       });              
+       
+       //Endpoint 7: Event Loop Blocking Detection
+       app.get('/detect-blocking', (req, res) => {
+        let lastLoop = Date.now();
+
+        //MONITOR EVENT LOOP HEALTH
+        const monitoriNTERVAL = setInterval(() => {
+            const now = Date.now();
+            const delay = now - lastLoop;
+            if (delay > 100) {
+                logWithColor(`EVENT LOOP BLOCKED for ${delay}ms!`,
+                    'blocking', 'MONITOR');
+            }
+            lastLoop = now;
+        }, 100);
+        //Simulate a long-running operation
+        setTimeout(() => {
+            logWithColor('Starting potentially blocking operation',
+                'blocking', req.id);
+                // This blocks the event loop
+                const start = Date.now();
+                while (Date.now() - start < 3000) {
+                    clearInterval(monitorInterval);
+                    logWithColor('Blocking operation completed', 'blocking', req.id);
+                    res.send('Check console for event loop blocking detection');
+                }
+        }, 100);
        });
