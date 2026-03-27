@@ -1,0 +1,18 @@
+// Main dashboard
+app.get('/', (req, res) => {
+    res.send(`
+    <!Doctype html>
+    <html>
+        <head>
+            <title>Event Loop Visualizer</title>
+            <style>
+                body {
+                    font-family: monospace; margin: 40px; background: #1e1e1e;
+                color: #d4d4d4;}
+                    .endpoint { background: #2d2d2d; margin: 15px 0; padding: 15px; border-left: 4px solid #007acc}
+
+            </style>
+        </head>
+    </html>
+    )
+})
