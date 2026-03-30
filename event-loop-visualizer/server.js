@@ -175,6 +175,34 @@ app.get('race/-demo', (req,res) => {
 });
 
 // Endpoint 7: Event Loop Blocking Detection
+app.get('/detect-blocking', (req, res) =>{
+    let lastLoop = Date.now();
+
+    // Monitor event loop health
+    const monitorInterval = setInterval(() => {
+        const now = Date.now();
+        const delay = now - lastLoop;
+        if (delay > 100) {
+            logWithColor(`EVENT LOOP BLOCKED for ${delay}ms!`, 'blocking', 'MONITOR');
+        }
+        lastLoop = now;
+    }, 100);
+
+    // Simulate a long-running operation
+    setTimeout(() => {
+        logWithColor('Starting potentially blocking operation', 'blocking', req.id);
+
+        // This blocks the event loop
+        const start = Date.now();
+        while (Date.now() - start < 3000) {
+            // CPU intensive
+        }
+
+        clearInterval(monitorInterval);
+        logWithColor('Blocking operation completed', 'blocking', req.id);
+        res.send('Check console for event loop blocking detection');
+    }, 100);
+});
 
     
 
