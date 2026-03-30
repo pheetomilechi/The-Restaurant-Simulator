@@ -146,33 +146,33 @@ app.use((req, res, next) => {
 //         });
 
 // Endpoint 6: Visual Demo - Race Conditions
-app.get('race/-demo', (req,res) => {
-    let counter = 0;
+// app.get('race/-demo', (req,res) => {
+//     let counter = 0;
 
-    logWithColor('=== RACE CONDITION DEMO ===', 'event-loop', req.id);
+//     logWithColor('=== RACE CONDITION DEMO ===', 'event-loop', req.id);
 
-    // This demonstrates how operations interleave
-    for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-            counter++;
-            logWithColor(`Timeout ${i + 1} incremented counter to ${counter}`, 'macrotask', req.id);
-        }, Math.random() * 100);
-    }
+//     // This demonstrates how operations interleave
+//     for (let i = 0; i < 5; i++) {
+//         setTimeout(() => {
+//             counter++;
+//             logWithColor(`Timeout ${i + 1} incremented counter to ${counter}`, 'macrotask', req.id);
+//         }, Math.random() * 100);
+//     }
 
-    for (let i = 0; i < 5; i++) {
-        Promise.resolve().then(() => {
-            counter++;
-            logWithColor(`Promise ${i + 1} incremented counter to ${counter}`, 'microtask', req.id);
-        });
-    }
-    setTimeout(() => {
-        res.json({
-            message: 'Race condition demo completed',
-            finalCounter: counter,
-            note: 'Notice how microtasks execute before macrotasks, even if macrotasks were scheduled first'
-        });
-    }, 200);
-});
+//     for (let i = 0; i < 5; i++) {
+//         Promise.resolve().then(() => {
+//             counter++;
+//             logWithColor(`Promise ${i + 1} incremented counter to ${counter}`, 'microtask', req.id);
+//         });
+//     }
+//     setTimeout(() => {
+//         res.json({
+//             message: 'Race condition demo completed',
+//             finalCounter: counter,
+//             note: 'Notice how microtasks execute before macrotasks, even if macrotasks were scheduled first'
+//         });
+//     }, 200);
+// });
 
 // Endpoint 7: Event Loop Blocking Detection
 app.get('/detect-blocking', (req, res) =>{
@@ -208,8 +208,8 @@ app.get('/detect-blocking', (req, res) =>{
 
        
    // Start the server
-// app.listen(PORT, () => {
-//     console.log(chalk.green(`\nServer running at http://localhost:${PORT}`));
-//     console.log(chalk.yellow('Open the console to watch the event loop in action!\n'));
-// });
+app.listen(PORT, () => {
+    console.log(chalk.green(`\nServer running at http://localhost:${PORT}`));
+    console.log(chalk.yellow('Open the console to watch the event loop in action!\n'));
+});
 
