@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Event Loop Dashboard</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        .metric {
+            background: #2d2d2d;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .blocked {
+            background: #4a2a2a;
+            border-left: 4px solid #f48771;
+        }
+        .value {
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        #logs {
+            height: 400px;
+            overflow-y: scroll;
+            background: #252526;
+            padding: 10px;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Event Loop Visualizer Dashboard</h1>
+
+    <div class="metric">
+        <h3>Test Scenarios</h3>
+        <button onclick="testBlocking()">Test Blocking</button>
+        <button onclick="testOrder()">Test Execution Order</button>
+        <button onclick="testRace()">Test Race Condition</button>
+        <button onclick="testComplex()">Test Complex Operations</button>
+       <button onclick="clearLogs()">Clear Logs</button> 
+    </div>
+    <div class="metric">
+        <h3>Real-time Logs</h3>
+        <div id="explanation"></div>
+    </div>
+    <script>
+        const ws = new WebSocket(`ws://localhost:3001`);
+        const logsDiv = document.getElementById('logs');
+        const explanationDiv = document.getElementBy.Id('explanation');
+        ws.onmessage = (event) => {
+            const log = JSON.parse(event.date);
+            addLog(log);
+
+            if (log.type === 'blocking') {
+                showExplanation('blocking');
+            } else if (log.type === 'microtask') {
+                showExplanation('microtask');
+            }
+        };
+
+        function addLog(log) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.color = getColorForType(log.type);
+            entry.textContent = `[$(log.timestamp)]
+            [${log.type.toUpperCase()}] ${log.message}`;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function getColorForType(type) {
+            const colors = {
+                'event-loop': '#4ec9b0',
+                'microtask': '#c586c0',
+                'macrotask': '#ce9178',
+                'blocking': '#f48771',
+                'async': '#4ec9b0',
+                'io': '#9cdcfe'
+            };
+            return colors[type] || '#d4d4d4'
+        };
+        function showExplanation(topic) {
+            const explainations = {
+                blocking: `
+                <strong> Blocking Explanation </strong><br>
+                The event loop was blocked! This means the main
+                thread was busy and couldn't handle other requests.
+                In Node.js, ANY synchronous CPU-intensive code will block the event loop. 
+                `,
+                microtask: `
+                <strong> Microtask Explanation :</strong><br>
+                Microtasks (Promises, process.nextTick) execute
+                immediately after the current operation completes, before
+                the event loop continues to the next phase. This is why they have priority
+                over setTimeout.
+                `
+            };
+            explanation.Div.innerHTML = explanation[topic] || '';
+        }
+        function clearLogs() {
+            logDiv.innerHTML = '';
+            explaination.Div.innerHTML = '';
+        }
+
+        // Test functions
+        async function testBlocking() {
+            await fetch('/blocking/3000');
+        }
+        async function testOrder() {
+            await fetch('/order-of-execution');
+        }
+        async function testRace() {
+            await fetch ('/race.demo');
+        }
+        async function testComplex() {
+            await fetch('/complex');
+        }
+        // Add WebSocket server code to your main server
+            </script>
+</body>
+</html>
