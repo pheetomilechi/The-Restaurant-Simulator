@@ -61,14 +61,16 @@
     </div>
     <div class="metric">
         <h3>Real-time Logs</h3>
+        <div id="logs"></div>
         <div id="explanation"></div>
     </div>
     <script>
         const ws = new WebSocket(`ws://localhost:3001`);
         const logsDiv = document.getElementById('logs');
-        const explanationDiv = document.getElementBy.Id('explanation');
+        const explanationDiv = document.getElementById('explanation');
+        
         ws.onmessage = (event) => {
-            const log = JSON.parse(event.date);
+            const log = JSON.parse(event.data);
             addLog(log);
 
             if (log.type === 'blocking') {
@@ -82,8 +84,7 @@
             const entry = document.createElement('div');
             entry.className = 'log-entry';
             entry.style.color = getColorForType(log.type);
-            entry.textContent = `[$(log.timestamp)]
-            [${log.type.toUpperCase()}] ${log.message}`;
+            entry.textContent = `[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`;
             logsDiv.appendChild(entry);
             logsDiv.scrollTop = logsDiv.scrollHeight;
         }
@@ -97,29 +98,28 @@
                 'async': '#4ec9b0',
                 'io': '#9cdcfe'
             };
-            return colors[type] || '#d4d4d4'
-        };
+            return colors[type] || '#d4d4d4';
+        }
+
         function showExplanation(topic) {
-            const explainations = {
+            const explanations = {
                 blocking: `
-                <strong> Blocking Explanation </strong><br>
-                The event loop was blocked! This means the main
-                thread was busy and couldn't handle other requests.
-                In Node.js, ANY synchronous CPU-intensive code will block the event loop. 
+                <strong>Blocking Explanation</strong><br>
+                The event loop was blocked! This means the main thread was busy and couldn't handle other requests.
+                In Node.js, ANY synchronous CPU-intensive code will block the event loop.
                 `,
                 microtask: `
-                <strong> Microtask Explanation :</strong><br>
-                Microtasks (Promises, process.nextTick) execute
-                immediately after the current operation completes, before
-                the event loop continues to the next phase. This is why they have priority
-                over setTimeout.
+                <strong>Microtask Explanation:</strong><br>
+                Microtasks (Promises, process.nextTick) execute immediately after the current operation completes, before
+                the event loop continues to the next phase. This is why they have priority over setTimeout.
                 `
             };
-            explanation.Div.innerHTML = explanation[topic] || '';
+            explanationDiv.innerHTML = explanations[topic] || '';
         }
+
         function clearLogs() {
-            logDiv.innerHTML = '';
-            explaination.Div.innerHTML = '';
+            logsDiv.innerHTML = '';
+            explanationDiv.innerHTML = '';
         }
 
         // Test functions
@@ -130,12 +130,11 @@
             await fetch('/order-of-execution');
         }
         async function testRace() {
-            await fetch ('/race.demo');
+            await fetch('/race-demo');
         }
         async function testComplex() {
             await fetch('/complex');
         }
-        // Add WebSocket server code to your main server
-            </script>
+    </script>
 </body>
 </html>

@@ -1,10 +1,15 @@
 const express = require('express');
 const chalk = require('chalk');
+const path = require('path');
 const app = express();
-const webSocket = require('ws');
+const WebSocket = require('ws');
 const PORT = 3000;
+const WS_PORT = 3001;
 
-// Helper for visual logging
+// Global WebSocket server instance
+let wss = null;
+
+// Helper for visual logging with WebSocket broadcast
 function logWithColor(message, type, requestId) {
     const timestamp = new Date().toISOString().split('T')[1];
     const colors = {
@@ -18,6 +23,16 @@ function logWithColor(message, type, requestId) {
 
     const colorFn = colors[type] || chalk.white;
     console.log(colorFn(`[${timestamp}] [${type.toUpperCase()}] [${requestId}] ${message}`));
+    
+    // Broadcast to WebSocket clients
+    if (wss && wss.clients) {
+        const logData = JSON.stringify({ timestamp, type, message, requestId });
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(logData);
+            }
+        });
+    }
 }
 
 // Middleware to track request IDs
@@ -29,10 +44,7 @@ app.use((req, res, next) => {
 });
 
 
-app.get('/', (req, res) => {
-    logWithColor('Handling root endpoint', 'event-loop', req.id);
-    res.send('Welcome to the Event Loop Visualizer! Check the console for details.');
-});
+
 
 // // Endpoint 1: Synchronous - Event Loop Blocking
     app.get('/blocking/:time', (req, res) => {
@@ -210,119 +222,114 @@ app.get('/', (req, res) => {
     }, 100);
     });
 
-    // Main dashboard
+// Main dashboard
 app.get('/', (req, res) => {
-    res.send`(
-    <!Doctype html>
+    res.send(`
+    <!DOCTYPE html>
     <html>
         <head>
             <title>Event Loop Visualizer</title>
             <style>
                 body {
-                    font-family: monospace; margin: 40px; background: #1e1e1e;
-                color: #d4d4d4;}
-                    .endpoint { background: #2d2d2d; margin: 15px 0; padding: 15px; border-left: 4px solid #007acc; }
-                    .url { color: #4ec9b0; font-weight: bold; }
-                    .description { color: #ce9178; margin: 5px 0; }
-                    .example { color: #9cdcfe; font-size: 0.9em; }
-                    hr { border-color: #3e3e42; }
-                    </style>
-                    </head>
-                    <body>
-                        <h1>Event Loop Visualizer</h1>
-                        <p>Open your browser console and observe the colored logs to
-                            understand the event loop behaviour.
-                        </p>
-                        <h2>Available Endpoints:</h2>
-                        <div class="endpoint"></div>
-                        <div class="url">Get /blocking/:time</div>
-                        <di class="description">Blocks the event loop for specified
-                            milliseconds
-                        </div>
-                        <div class="example">Example: <a href="/blocking/3000"></a></div>
-                    </div>
+                    font-family: monospace;
+                    margin: 40px;
+                    background: #1e1e1e;
+                    color: #d4d4d4;
+                }
+                .endpoint {
+                    background: #2d2d2d;
+                    margin: 15px 0;
+                    padding: 15px;
+                    border-left: 4px solid #007acc;
+                }
+                .url {
+                    color: #4ec9b0;
+                    font-weight: bold;
+                }
+                .description {
+                    color: #ce9178;
+                    margin: 5px 0;
+                }
+                .example {
+                    color: #9cdcfe;
+                    font-size: 0.9em;
+                }
+                hr {
+                    border-color: #3e3e42;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Event Loop Visualizer</h1>
+            <p>Open your browser console and observe the colored logs to understand the event loop behaviour.</p>
+            <h2>Available Endpoints:</h2>
+            
+            <div class="endpoint">
+                <div class="url">GET /blocking/:time</div>
+                <div class="description">Blocks the event loop for specified milliseconds</div>
+                <div class="example">Example: <a href="/blocking/3000">/blocking/3000</a></div>
+            </div>
 
-                    <div class="endpoint">
-                        <div class="url">GET /order-of-execution</div>
-                        <div class="description">Shows microtask vs macrotask
-                            priority</div>
-                            <div class="example"><a href="/nonblocking-io">/nonblocking-io</a></div>
-                    </div>
+            <div class="endpoint">
+                <div class="url">GET /order-of-execution</div>
+                <div class="description">Shows microtask vs macrotask priority</div>
+                <div class="example"><a href="/order-of-execution">/order-of-execution</a></div>
+            </div>
 
-                    <div class="endpoint">
-                        <div class="url">GET /complex</div>
-                        <div class="description">Real-world scenario with 
-                            mixed operation</div>
-                            <div class="example"><a href="/complex">/complex</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="url">GET /race-demo</div>
-                        <div class="description">Demonstrates operation interleaving</div>
-                        <div class="example"><a href="/race-demo">/race-demo</a></div>
-                    </div>
+            <div class="endpoint">
+                <div class="url">GET /nonblocking-io</div>
+                <div class="description">Non-blocking I/O simulation</div>
+                <div class="example"><a href="/nonblocking-io">/nonblocking-io</a></div>
+            </div>
 
-                    <div class="endpoint">
-                        <div class="url">GET /defect-blovking</div>
-                        <div class="description">Detects and reports event loop  blocking</div>
-                        <div class="example"><a href="/defect-blocking">/detect-blocking</a></div>
-                    </div>
-                    <hr>
-                    <p>Watch the console for colored logs:</p>
-                    <ul>
-                        <li><span style="color: #4ec9b0;">Blue</span> - Event
-                        Loop activity</li>
-                        <li><span style="color: #ce9178;">Yellow</span> - Macrotasks
-                        (setTimeout, setImmediate)</li>
-                        <li><span style="color: #c586c0;">Magenta</span> - Microtasks
-                        (Promises, process.nextTick)</li>
-                        <li><span style="color: #4ec9b0;">Green</span> - Async
-                        completions</li>
-                        <li><span style="color: #9cdcfe;">Cyan</span> - I/O 
-                        operations</li>
-                    </ul> 
-                    <script src="server.js"></script>
-                    </body>
-                    </html>
-    )`
+            <div class="endpoint">
+                <div class="url">GET /complex</div>
+                <div class="description">Real-world scenario with mixed operations</div>
+                <div class="example"><a href="/complex">/complex</a></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="url">GET /race-demo</div>
+                <div class="description">Demonstrates operation interleaving</div>
+                <div class="example"><a href="/race-demo">/race-demo</a></div>
+            </div>
+
+            <div class="endpoint">
+                <div class="url">GET /detect-blocking</div>
+                <div class="description">Detects and reports event loop blocking</div>
+                <div class="example"><a href="/detect-blocking">/detect-blocking</a></div>
+            </div>
+
+            <hr>
+            <p>Watch the console for colored logs:</p>
+            <ul>
+                <li><span style="color: #0087ff;">Blue</span> - Event Loop activity</li>
+                <li><span style="color: #ffff00;">Yellow</span> - Macrotasks (setTimeout, setImmediate)</li>
+                <li><span style="color: #ff00ff;">Magenta</span> - Microtasks (Promises, process.nextTick)</li>
+                <li><span style="color: #00ff00;">Green</span> - Async completions</li>
+                <li><span style="color: #00ffff;">Cyan</span> - I/O operations</li>
+            </ul>
+        </body>
+    </html>
+    `)
+});
+
+
+// Create WebSocket server
+wss = new WebSocket.Server({ port: WS_PORT });
+wss.on('connection', (ws) => {
+    console.log(chalk.cyan('Dashboard connected'));
+    ws.on('close', () => {
+        console.log(chalk.cyan('Dashboard disconnected'));
+    });
+});
+// Serve the dashboard
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
     // Start the server
     app.listen(PORT, () => {
-        console.log(chalk.green(`\nServer running at http://localhost:${PORT}`));
+        console.log(chalk.green(`\n Server running at http://localhost:${PORT}`));
         console.log(chalk.yellow('Open the console to watch the event loop in action!\n'));
     });
-
-    // Add to server.js
-    const WebSocket = require('ws');
-    const wss = new WebSocket.Server({ port: 3001});
-
-    wss.on('connection', (ws) => {
-        console.log('Dashboard connected');
-    });
-
-    // Modify logWithColor to broadcast to WebSocket clients
-    function logWithColor(message, type, requestId) {
-        const timestamp = new Date().toISOString().split('T') [1];
-        const logData = { timestamp, type, message, requestId };
-
-        // Broadcast to all connected dashboards
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(logData));
-            }
-        });
-
-    // Console logging with colors (keep existing code)
-    const colors = {
-        'event-loop': chalk.blue,
-        'microtask': chalk.magenta,
-        'macrotask': chalk.yellow,
-        'blocking': chalk.red,
-        'async': chalk.green,
-        'io': chalk.cyan
-    };
-
-    const colorFn = colors[type]  || chalk.white;
-    console.log(colorFn(`[${timestamp}] [${type.toUpperCase()}] 
-    [${requestId}] ${message}`));
-};
