@@ -1,6 +1,7 @@
 const express = require('express');
 const chalk = require('chalk');
 const app = express();
+const WebSocket = require('ws');
 const PORT = 3000;
 
 // Helper for visual logging
@@ -27,6 +28,11 @@ app.use((req, res, next) => {
     next();
 });
 
+
+app.get('/', (req, res) => {
+    logWithColor('Handling root endpoint', 'event-loop', req.id);
+    res.send('Welcome to the Event Loop Visualizer! Check the console for details.');
+});
 
 // // Endpoint 1: Synchronous - Event Loop Blocking
     app.get('/blocking/:time', (req, res) => {
@@ -204,6 +210,82 @@ app.use((req, res, next) => {
     }, 100);
     });
 
+    // Main dashboard
+app.get('/', (req, res) => {
+    res.send`(
+    <!Doctype html>
+    <html>
+        <head>
+            <title>Event Loop Visualizer</title>
+            <style>
+                body {
+                    font-family: monospace; margin: 40px; background: #1e1e1e;
+                color: #d4d4d4;}
+                    .endpoint { background: #2d2d2d; margin: 15px 0; padding: 15px; border-left: 4px solid #007acc; }
+                    .url { color: #4ec9b0; font-weight: bold; }
+                    .description { color: #ce9178; margin: 5px 0; }
+                    .example { color: #9cdcfe; font-size: 0.9em; }
+                    hr { border-color: #3e3e42; }
+                    </style>
+                    </head>
+                    <body>
+                        <h1>Event Loop Visualizer</h1>
+                        <p>Open your browser console and observe the colored logs to
+                            understand the event loop behaviour.
+                        </p>
+                        <h2>Available Endpoints:</h2>
+                        <div class="endpoint"></div>
+                        <div class="url">Get /blocking/:time</div>
+                        <di class="description">Blocks the event loop for specified
+                            milliseconds
+                        </div>
+                        <div class="example">Example: <a href="/blocking/3000"></a></div>
+                    </div>
+
+                    <div class="endpoint">
+                        <div class="url">GET /order-of-execution</div>
+                        <div class="description">Shows microtask vs macrotask
+                            priority</div>
+                            <div class="example"><a href="/nonblocking-io">/nonblocking-io</a></div>
+                    </div>
+
+                    <div class="endpoint">
+                        <div class="url">GET /complex</div>
+                        <div class="description">Real-world scenario with 
+                            mixed operation</div>
+                            <div class="example"><a href="/complex">/complex</a></div>
+                    </div>
+                    <div class="endpoint">
+                        <div class="url">GET /race-demo</div>
+                        <div class="description">Demonstrates operation interleaving</div>
+                        <div class="example"><a href="/race-demo">/race-demo</a></div>
+                    </div>
+
+                    <div class="endpoint">
+                        <div class="url">GET /defect-blovking</div>
+                        <div class="description">Detects and reports event loop  blocking</div>
+                        <div class="example"><a href="/defect-blocking">/detect-blocking</a></div>
+                    </div>
+                    <hr>
+                    <p>Watch the console for colored logs:</p>
+                    <ul>
+                        <li><span style="color: #4ec9b0;">Blue</span> - Event
+                        Loop activity</li>
+                        <li><span style="color: #ce9178;">Yellow</span> - Macrotasks
+                        (setTimeout, setImmediate)</li>
+                        <li><span style="color: #c586c0;">Magenta</span> - Microtasks
+                        (Promises, process.nextTick)</li>
+                        <li><span style="color: #4ec9b0;">Green</span> - Async
+                        completions</li>
+                        <li><span style="color: #9cdcfe;">Cyan</span> - I/O 
+                        operations</li>
+                    </ul> 
+                    <script src="server.js"></script>
+                    </body>
+                    </html>
+    )`
+});
+
     // Start the server
     app.listen(PORT, () => {
         console.log(chalk.green(`\nServer running at http://localhost:${PORT}`));
@@ -243,4 +325,4 @@ app.use((req, res, next) => {
     const colorFn = colors[type]  || chalk.white;
     console.log(colorFn(`[${timestamp}] [${type.toUpperCase()}] 
     [${requestId}] ${message}`));
-}
+};
