@@ -1,7 +1,7 @@
 const express = require('express');
 const chalk = require('chalk');
 const app = express();
-const WebSocket = require('ws');
+const webSocket = require('ws');
 const PORT = 3000;
 
 // Helper for visual logging
